@@ -73,7 +73,7 @@ class Build < ActiveRecord::Base
     if git_ref.present?
       commit = project.repository.commit_from_ref(git_ref, length: nil)
       if commit
-        self.git_sha = commit
+        self.git_sha = commit unless git_sha.present?
       else
         errors.add(:git_ref, 'is not a valid reference')
       end

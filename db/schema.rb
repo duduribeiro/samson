@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150619170905) do
+ActiveRecord::Schema.define(version: 20150717135909) do
 
   create_table "build_statuses", force: :cascade do |t|
     t.integer  "build_id",                                     null: false
@@ -41,9 +41,9 @@ ActiveRecord::Schema.define(version: 20150619170905) do
     t.datetime "updated_at"
   end
 
-  add_index "builds", ["created_by"], name: "index_builds_on_created_by", using: :btree
-  add_index "builds", ["git_sha"], name: "index_builds_on_git_sha", unique: true, using: :btree
-  add_index "builds", ["project_id"], name: "index_builds_on_project_id", using: :btree
+  add_index "builds", ["created_by"], name: "index_builds_on_created_by"
+  add_index "builds", ["git_sha"], name: "index_builds_on_git_sha"
+  add_index "builds", ["project_id"], name: "index_builds_on_project_id"
 
   create_table "commands", force: :cascade do |t|
     t.text     "command",    limit: 10485760

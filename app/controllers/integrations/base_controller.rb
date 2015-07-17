@@ -3,22 +3,17 @@ class Integrations::BaseController < ApplicationController
   skip_before_action :verify_authenticity_token
 
   def create
-    if deploy?
-      create_new_release
-      unless deploy_to_stages
-        head :unprocessable_entity
-        return
-      end
-    end
-
-    head :ok
+    return head :ok unless deploy?
+    project.deploy_with_docker? ? create_docker_build : create_release_and_deploy
   end
 
   protected
 
   def create_new_release
     if project.create_releases_for_branch?(branch)
-      unless project.last_release_contains_commit?(commit)
+      if project.last_release_contains_commit?(commit)
+        project.releases.order(:id).last
+      else
         release_service = ReleaseService.new(project)
         release_service.create_release!(commit: commit, author: user)
       end
@@ -59,5 +54,26 @@ class Integrations::BaseController < ApplicationController
 
   def service_name
     @service_name ||= self.class.name.demodulize.sub('Controller', '').downcase
+  end
+
+  def create_docker_build
+    release = create_new_release
+    build = project.builds.create(
+      git_ref: branch,
+      git_sha: commit,
+      description: message,
+      creator: user,
+      label: release.version)
+    build.persisted? ? head(:ok) : head(:bad_request, message: build.errors)
+  end
+
+  def create_release_and_deploy
+    create_new_release
+    return head :unprocessable_entity unless deploy_to_stages
+    head :ok
+  end
+
+  def message
+    ''
   end
 end
