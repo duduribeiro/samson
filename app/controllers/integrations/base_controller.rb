@@ -13,6 +13,22 @@ class Integrations::BaseController < ApplicationController
 
   protected
 
+  def create_new_release
+    unless project.last_release_contains_commit?(commit)
+      release_service = ReleaseService.new(project)
+      release_service.create_release!(commit: commit, author: user)
+    end
+  end
+
+  def deploy_to_stages
+    stages = project.webhook_stages_for(branch, service_type, service_name)
+    deploy_service = DeployService.new(user)
+
+    stages.all? do |stage|
+      deploy_service.deploy!(stage, reference: commit).persisted?
+    end
+  end
+
   def project
     @project ||= Project.find_by_token!(params[:token])
   end
@@ -59,22 +75,6 @@ class Integrations::BaseController < ApplicationController
 
   def create_docker_image
     DockerBuilderService.new(@build).run!(push: true)
-  end
-
-  def deploy_to_stages
-    stages = project.webhook_stages_for(branch, service_type, service_name)
-    deploy_service = DeployService.new(user)
-
-    stages.all? do |stage|
-      deploy_service.deploy!(stage, reference: commit).persisted?
-    end
-  end
-
-  def create_new_release
-    unless project.last_release_contains_commit?(commit)
-      release_service = ReleaseService.new(project)
-      release_service.create_release!(commit: commit, author: user)
-    end
   end
 
   def latest_release
